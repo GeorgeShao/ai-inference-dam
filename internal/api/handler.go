@@ -256,17 +256,14 @@ func (h *Handler) GetRequest(c *fiber.Ctx) error {
 }
 
 func (h *Handler) ListRequests(c *fiber.Ctx) error {
-	namespace := c.Query("namespace")
+	namespace := c.Query("namespace", "default")
 	status := c.Query("status")
 	cursor := c.Query("cursor")
 	limit := c.QueryInt("limit", 100)
 
 	filter := storage.RequestFilter{
-		Limit: limit,
-	}
-
-	if namespace != "" {
-		filter.Namespace = &namespace
+		Limit:     limit,
+		Namespace: &namespace,
 	}
 	if status != "" {
 		s := types.RequestStatus(status)
@@ -312,7 +309,7 @@ func (h *Handler) TriggerDispatch(c *fiber.Ctx) error {
 	}
 
 	if req.Namespace == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(types.ErrorResponse{Error: "Namespace is required"})
+		req.Namespace = "default"
 	}
 
 	ns, err := h.store.GetNamespace(c.Context(), req.Namespace)
