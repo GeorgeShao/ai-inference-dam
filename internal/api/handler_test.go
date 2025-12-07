@@ -73,7 +73,7 @@ func TestCreateNamespace(t *testing.T) {
 
 	// Create namespace
 	body := `{"name": "test-ns", "description": "Test namespace"}`
-	req := httptest.NewRequest(http.MethodPost, "/v1/namespaces", bytes.NewBufferString(body))
+	req := httptest.NewRequest(http.MethodPost, "/namespaces", bytes.NewBufferString(body))
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := app.Test(req)
@@ -104,7 +104,7 @@ func TestCreateNamespaceDuplicate(t *testing.T) {
 	defer cleanup()
 
 	body := `{"name": "test-ns"}`
-	req := httptest.NewRequest(http.MethodPost, "/v1/namespaces", bytes.NewBufferString(body))
+	req := httptest.NewRequest(http.MethodPost, "/namespaces", bytes.NewBufferString(body))
 	req.Header.Set("Content-Type", "application/json")
 
 	// First request should succeed
@@ -117,7 +117,7 @@ func TestCreateNamespaceDuplicate(t *testing.T) {
 	}
 
 	// Second request should fail
-	req = httptest.NewRequest(http.MethodPost, "/v1/namespaces", bytes.NewBufferString(body))
+	req = httptest.NewRequest(http.MethodPost, "/namespaces", bytes.NewBufferString(body))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err = app.Test(req)
 	if err != nil {
@@ -135,7 +135,7 @@ func TestGetNamespace(t *testing.T) {
 
 	// Create namespace first
 	body := `{"name": "test-ns", "description": "Test"}`
-	req := httptest.NewRequest(http.MethodPost, "/v1/namespaces", bytes.NewBufferString(body))
+	req := httptest.NewRequest(http.MethodPost, "/namespaces", bytes.NewBufferString(body))
 	req.Header.Set("Content-Type", "application/json")
 	_, err := app.Test(req)
 	if err != nil {
@@ -143,7 +143,7 @@ func TestGetNamespace(t *testing.T) {
 	}
 
 	// Get namespace
-	req = httptest.NewRequest(http.MethodGet, "/v1/namespaces/test-ns", nil)
+	req = httptest.NewRequest(http.MethodGet, "/namespaces/test-ns", nil)
 	resp, err := app.Test(req)
 	if err != nil {
 		t.Fatalf("Request failed: %v", err)
@@ -170,7 +170,7 @@ func TestGetNamespaceNotFound(t *testing.T) {
 	app, cleanup := setupTestApp(t)
 	defer cleanup()
 
-	req := httptest.NewRequest(http.MethodGet, "/v1/namespaces/nonexistent", nil)
+	req := httptest.NewRequest(http.MethodGet, "/namespaces/nonexistent", nil)
 	resp, err := app.Test(req)
 	if err != nil {
 		t.Fatalf("Request failed: %v", err)
@@ -187,7 +187,7 @@ func TestUpdateNamespace(t *testing.T) {
 
 	// Create namespace
 	body := `{"name": "test-ns", "description": "Original"}`
-	req := httptest.NewRequest(http.MethodPost, "/v1/namespaces", bytes.NewBufferString(body))
+	req := httptest.NewRequest(http.MethodPost, "/namespaces", bytes.NewBufferString(body))
 	req.Header.Set("Content-Type", "application/json")
 	_, err := app.Test(req)
 	if err != nil {
@@ -196,7 +196,7 @@ func TestUpdateNamespace(t *testing.T) {
 
 	// Update namespace
 	body = `{"description": "Updated"}`
-	req = httptest.NewRequest(http.MethodPatch, "/v1/namespaces/test-ns", bytes.NewBufferString(body))
+	req = httptest.NewRequest(http.MethodPatch, "/namespaces/test-ns", bytes.NewBufferString(body))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := app.Test(req)
 	if err != nil {
@@ -223,7 +223,7 @@ func TestDeleteNamespace(t *testing.T) {
 
 	// Create namespace
 	body := `{"name": "test-ns"}`
-	req := httptest.NewRequest(http.MethodPost, "/v1/namespaces", bytes.NewBufferString(body))
+	req := httptest.NewRequest(http.MethodPost, "/namespaces", bytes.NewBufferString(body))
 	req.Header.Set("Content-Type", "application/json")
 	_, err := app.Test(req)
 	if err != nil {
@@ -231,7 +231,7 @@ func TestDeleteNamespace(t *testing.T) {
 	}
 
 	// Delete namespace
-	req = httptest.NewRequest(http.MethodDelete, "/v1/namespaces/test-ns", nil)
+	req = httptest.NewRequest(http.MethodDelete, "/namespaces/test-ns", nil)
 	resp, err := app.Test(req)
 	if err != nil {
 		t.Fatalf("Request failed: %v", err)
@@ -242,7 +242,7 @@ func TestDeleteNamespace(t *testing.T) {
 	}
 
 	// Verify deletion
-	req = httptest.NewRequest(http.MethodGet, "/v1/namespaces/test-ns", nil)
+	req = httptest.NewRequest(http.MethodGet, "/namespaces/test-ns", nil)
 	resp, err = app.Test(req)
 	if err != nil {
 		t.Fatalf("Request failed: %v", err)
@@ -259,7 +259,7 @@ func TestDeleteDefaultNamespace(t *testing.T) {
 
 	// Create default namespace
 	body := `{"name": "default"}`
-	req := httptest.NewRequest(http.MethodPost, "/v1/namespaces", bytes.NewBufferString(body))
+	req := httptest.NewRequest(http.MethodPost, "/namespaces", bytes.NewBufferString(body))
 	req.Header.Set("Content-Type", "application/json")
 	_, err := app.Test(req)
 	if err != nil {
@@ -267,7 +267,7 @@ func TestDeleteDefaultNamespace(t *testing.T) {
 	}
 
 	// Try to delete default namespace
-	req = httptest.NewRequest(http.MethodDelete, "/v1/namespaces/default", nil)
+	req = httptest.NewRequest(http.MethodDelete, "/namespaces/default", nil)
 	resp, err := app.Test(req)
 	if err != nil {
 		t.Fatalf("Request failed: %v", err)
@@ -285,7 +285,7 @@ func TestListNamespaces(t *testing.T) {
 	// Create namespaces
 	for _, name := range []string{"ns1", "ns2", "ns3"} {
 		body := `{"name": "` + name + `"}`
-		req := httptest.NewRequest(http.MethodPost, "/v1/namespaces", bytes.NewBufferString(body))
+		req := httptest.NewRequest(http.MethodPost, "/namespaces", bytes.NewBufferString(body))
 		req.Header.Set("Content-Type", "application/json")
 		_, err := app.Test(req)
 		if err != nil {
@@ -294,7 +294,7 @@ func TestListNamespaces(t *testing.T) {
 	}
 
 	// List namespaces
-	req := httptest.NewRequest(http.MethodGet, "/v1/namespaces", nil)
+	req := httptest.NewRequest(http.MethodGet, "/namespaces", nil)
 	resp, err := app.Test(req)
 	if err != nil {
 		t.Fatalf("Request failed: %v", err)
@@ -320,7 +320,7 @@ func TestQueueChatCompletion(t *testing.T) {
 
 	// Create default namespace
 	body := `{"name": "default"}`
-	req := httptest.NewRequest(http.MethodPost, "/v1/namespaces", bytes.NewBufferString(body))
+	req := httptest.NewRequest(http.MethodPost, "/namespaces", bytes.NewBufferString(body))
 	req.Header.Set("Content-Type", "application/json")
 	_, err := app.Test(req)
 	if err != nil {
@@ -364,7 +364,7 @@ func TestQueueChatCompletionWithNamespace(t *testing.T) {
 
 	// Create namespace
 	body := `{"name": "my-project"}`
-	req := httptest.NewRequest(http.MethodPost, "/v1/namespaces", bytes.NewBufferString(body))
+	req := httptest.NewRequest(http.MethodPost, "/namespaces", bytes.NewBufferString(body))
 	req.Header.Set("Content-Type", "application/json")
 	_, err := app.Test(req)
 	if err != nil {
@@ -421,7 +421,7 @@ func TestGetRequest(t *testing.T) {
 
 	// Create namespace and queue request
 	body := `{"name": "default"}`
-	req := httptest.NewRequest(http.MethodPost, "/v1/namespaces", bytes.NewBufferString(body))
+	req := httptest.NewRequest(http.MethodPost, "/namespaces", bytes.NewBufferString(body))
 	req.Header.Set("Content-Type", "application/json")
 	_, err := app.Test(req)
 	if err != nil {
@@ -442,7 +442,7 @@ func TestGetRequest(t *testing.T) {
 	}
 
 	// Get request
-	req = httptest.NewRequest(http.MethodGet, "/v1/requests/"+queued.ID, nil)
+	req = httptest.NewRequest(http.MethodGet, "/requests/"+queued.ID, nil)
 	resp, err = app.Test(req)
 	if err != nil {
 		t.Fatalf("Request failed: %v", err)
@@ -468,7 +468,7 @@ func TestListRequests(t *testing.T) {
 
 	// Create namespace
 	body := `{"name": "default"}`
-	req := httptest.NewRequest(http.MethodPost, "/v1/namespaces", bytes.NewBufferString(body))
+	req := httptest.NewRequest(http.MethodPost, "/namespaces", bytes.NewBufferString(body))
 	req.Header.Set("Content-Type", "application/json")
 	_, err := app.Test(req)
 	if err != nil {
@@ -487,7 +487,7 @@ func TestListRequests(t *testing.T) {
 	}
 
 	// List requests
-	req = httptest.NewRequest(http.MethodGet, "/v1/requests?namespace=default", nil)
+	req = httptest.NewRequest(http.MethodGet, "/requests?namespace=default", nil)
 	resp, err := app.Test(req)
 	if err != nil {
 		t.Fatalf("Request failed: %v", err)
@@ -516,7 +516,7 @@ func TestTriggerDispatch(t *testing.T) {
 
 	// Create namespace
 	body := `{"name": "test-ns"}`
-	req := httptest.NewRequest(http.MethodPost, "/v1/namespaces", bytes.NewBufferString(body))
+	req := httptest.NewRequest(http.MethodPost, "/namespaces", bytes.NewBufferString(body))
 	req.Header.Set("Content-Type", "application/json")
 	_, err := app.Test(req)
 	if err != nil {
@@ -525,7 +525,7 @@ func TestTriggerDispatch(t *testing.T) {
 
 	// Trigger dispatch with no requests
 	body = `{"namespace": "test-ns"}`
-	req = httptest.NewRequest(http.MethodPost, "/v1/dispatch", bytes.NewBufferString(body))
+	req = httptest.NewRequest(http.MethodPost, "/dispatch", bytes.NewBufferString(body))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := app.Test(req)
 	if err != nil {
@@ -555,7 +555,7 @@ func TestTriggerDispatchWithRequests(t *testing.T) {
 
 	// Create namespace with provider config
 	body := `{"name": "test-ns", "provider": {"api_endpoint": "https://api.example.com/v1", "api_key": "test-key"}}`
-	req := httptest.NewRequest(http.MethodPost, "/v1/namespaces", bytes.NewBufferString(body))
+	req := httptest.NewRequest(http.MethodPost, "/namespaces", bytes.NewBufferString(body))
 	req.Header.Set("Content-Type", "application/json")
 	_, err := app.Test(req)
 	if err != nil {
@@ -574,7 +574,7 @@ func TestTriggerDispatchWithRequests(t *testing.T) {
 
 	// Trigger dispatch
 	body = `{"namespace": "test-ns"}`
-	req = httptest.NewRequest(http.MethodPost, "/v1/dispatch", bytes.NewBufferString(body))
+	req = httptest.NewRequest(http.MethodPost, "/dispatch", bytes.NewBufferString(body))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := app.Test(req)
 	if err != nil {
@@ -603,7 +603,7 @@ func TestTriggerDispatchNamespaceNotFound(t *testing.T) {
 	defer cleanup()
 
 	body := `{"namespace": "nonexistent"}`
-	req := httptest.NewRequest(http.MethodPost, "/v1/dispatch", bytes.NewBufferString(body))
+	req := httptest.NewRequest(http.MethodPost, "/dispatch", bytes.NewBufferString(body))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := app.Test(req)
 	if err != nil {
