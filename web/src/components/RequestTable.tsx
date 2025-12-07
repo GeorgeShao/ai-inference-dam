@@ -1,13 +1,13 @@
-import { useMemo, useState, useCallback } from 'react';
+import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import { AgGridReact } from 'ag-grid-react';
-import type { ColDef, ICellRendererParams } from 'ag-grid-community';
+import type { ColDef, ICellRendererParams, IDatasource, IGetRowsParams } from 'ag-grid-community';
 import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
 import { Copy, Check } from 'lucide-react';
 
 import { StatusBadge } from './StatusBadge';
 import { ContentDialog } from './ContentDialog';
-import { useRequests } from '@/hooks/useRequests';
-import type { Request, RequestStatus } from '@/types';
+import * as api from '@/api/client';
+import type { Request, RequestStatus, NamespaceStats } from '@/types';
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
@@ -32,15 +32,32 @@ function CopyButton({ text }: { text: string }) {
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
+const BLOCK_SIZE = 100;
+
 interface RequestTableProps {
   namespace: string;
+  stats?: NamespaceStats;
 }
 
 export function RequestTable({ namespace }: RequestTableProps) {
-  const { data, isLoading, error } = useRequests({ namespace, limit: 1000 });
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogTitle, setDialogTitle] = useState('');
   const [dialogContent, setDialogContent] = useState('');
+  const gridRef = useRef<AgGridReact<Request>>(null);
+
+  // Track cursor state for pagination
+  const cursorStateRef = useRef<{
+    // Map of startRow -> cursor to use for that block
+    cursors: Map<number, string | null>;
+    // Total count from the API
+    totalCount: number | null;
+    // Whether we've reached the last row
+    reachedEnd: boolean;
+  }>({
+    cursors: new Map([[0, null]]), // First block has no cursor
+    totalCount: null,
+    reachedEnd: false,
+  });
 
   const openContentDialog = useCallback((title: string, content: string) => {
     setDialogTitle(title);
@@ -48,31 +65,124 @@ export function RequestTable({ namespace }: RequestTableProps) {
     setDialogOpen(true);
   }, []);
 
+  // Create datasource for infinite scrolling
+  const datasource = useMemo<IDatasource>(() => ({
+    getRows: async (params: IGetRowsParams) => {
+      const { startRow, successCallback, failCallback } = params;
+      const state = cursorStateRef.current;
+
+      try {
+        // Find the cursor for this block
+        // For cursor pagination, we need to load blocks sequentially
+        // Check if we have a cursor for this startRow
+        let cursor = state.cursors.get(startRow);
+
+        // If we don't have a cursor and this isn't the first block,
+        // we need to load preceding blocks first
+        if (cursor === undefined && startRow > 0) {
+          // Find the closest loaded block before this one
+          const sortedStarts = Array.from(state.cursors.keys()).sort((a, b) => a - b);
+          const closestStart = sortedStarts.filter(s => s < startRow).pop();
+
+          if (closestStart !== undefined) {
+            // Load all blocks between closestStart and startRow
+            let currentStart = closestStart;
+            while (currentStart < startRow) {
+              const prevCursor = state.cursors.get(currentStart) ?? null;
+              const response = await api.listRequests({
+                namespace,
+                limit: BLOCK_SIZE,
+                cursor: prevCursor ?? undefined,
+              });
+
+              state.totalCount = response.total;
+              const nextStart = currentStart + BLOCK_SIZE;
+
+              if (response.next_cursor) {
+                state.cursors.set(nextStart, response.next_cursor);
+              } else {
+                state.reachedEnd = true;
+              }
+
+              currentStart = nextStart;
+            }
+            cursor = state.cursors.get(startRow);
+          }
+        }
+
+        // Fetch the actual data for this block
+        const response = await api.listRequests({
+          namespace,
+          limit: BLOCK_SIZE,
+          cursor: cursor ?? undefined,
+        });
+
+        state.totalCount = response.total;
+
+        // Store cursor for next block
+        const nextStartRow = startRow + response.requests.length;
+        if (response.next_cursor) {
+          state.cursors.set(nextStartRow, response.next_cursor);
+        } else {
+          state.reachedEnd = true;
+        }
+
+        // Determine lastRow for AG Grid
+        // If we've reached the end, tell AG Grid the exact last row
+        // Otherwise, return -1 to indicate more data may be available
+        let lastRow = -1;
+        if (state.reachedEnd || !response.next_cursor) {
+          lastRow = startRow + response.requests.length;
+        } else if (state.totalCount !== null) {
+          // We know the total, use it
+          lastRow = state.totalCount;
+        }
+
+        successCallback(response.requests, lastRow);
+      } catch (error) {
+        console.error('Failed to load requests:', error);
+        failCallback();
+      }
+    },
+  }), [namespace]);
+
+  // Reset datasource when namespace changes
+  useEffect(() => {
+    cursorStateRef.current = {
+      cursors: new Map([[0, null]]),
+      totalCount: null,
+      reachedEnd: false,
+    };
+
+    // Refresh the grid data
+    if (gridRef.current?.api) {
+      gridRef.current.api.setGridOption('datasource', datasource);
+    }
+  }, [namespace, datasource]);
+
   const columnDefs = useMemo<ColDef<Request>[]>(() => [
     {
       field: 'id',
       headerName: 'ID',
       flex: 2,
       minWidth: 250,
-      sortable: true,
-      filter: true,
     },
     {
       field: 'status',
       headerName: 'Status',
       cellRenderer: (params: ICellRendererParams<Request>) => {
+        if (!params.data) return null;
         const status = params.value as RequestStatus;
         return <StatusBadge status={status} />;
       },
       flex: 1,
       minWidth: 100,
-      sortable: true,
-      filter: true,
     },
     {
       field: 'request',
       headerName: 'Request',
       cellRenderer: (params: ICellRendererParams<Request>) => {
+        if (!params.data) return null;
         if (!params.value) return <span className="text-muted-foreground">-</span>;
         const json = JSON.stringify(params.value, null, 2);
         // Extract user message content from request
@@ -107,6 +217,7 @@ export function RequestTable({ namespace }: RequestTableProps) {
       field: 'response',
       headerName: 'Response',
       cellRenderer: (params: ICellRendererParams<Request>) => {
+        if (!params.data) return null;
         if (!params.value) return <span className="text-muted-foreground">-</span>;
         const json = JSON.stringify(params.value, null, 2);
         // Extract assistant message content from response
@@ -141,7 +252,6 @@ export function RequestTable({ namespace }: RequestTableProps) {
         params.value ? new Date(params.value).toLocaleString() : '-',
       flex: 1,
       minWidth: 150,
-      sortable: true,
     },
     {
       field: 'dispatched_at',
@@ -150,7 +260,6 @@ export function RequestTable({ namespace }: RequestTableProps) {
         params.value ? new Date(params.value).toLocaleString() : '-',
       flex: 1,
       minWidth: 150,
-      sortable: true,
     },
     {
       field: 'completed_at',
@@ -159,12 +268,12 @@ export function RequestTable({ namespace }: RequestTableProps) {
         params.value ? new Date(params.value).toLocaleString() : '-',
       flex: 1,
       minWidth: 150,
-      sortable: true,
     },
     {
       field: 'error',
       headerName: 'Error',
       cellRenderer: (params: ICellRendererParams<Request>) => {
+        if (!params.data) return null;
         if (!params.value) return <span className="text-muted-foreground">-</span>;
         const errorText = String(params.value);
         const truncated = errorText.length > 60 ? errorText.slice(0, 60) + '...' : errorText;
@@ -188,21 +297,23 @@ export function RequestTable({ namespace }: RequestTableProps) {
 
   const defaultColDef = useMemo<ColDef>(() => ({
     resizable: true,
+    sortable: false,  // Disable sorting globally (not compatible with cursor pagination)
   }), []);
-
-  if (error) {
-    return <div className="text-red-500">Error loading requests: {error.message}</div>;
-  }
 
   return (
     <div>
-      <div style={{ width: '100%' }}>
+      <div style={{ width: '100%', height: '600px' }}>
         <AgGridReact<Request>
-          rowData={data?.requests || []}
+          ref={gridRef}
           columnDefs={columnDefs}
           defaultColDef={defaultColDef}
-          loading={isLoading}
-          domLayout="autoHeight"
+          rowModelType="infinite"
+          datasource={datasource}
+          cacheBlockSize={BLOCK_SIZE}
+          cacheOverflowSize={2}
+          maxConcurrentDatasourceRequests={1}
+          infiniteInitialRowCount={BLOCK_SIZE}
+          maxBlocksInCache={100}
           rowSelection="single"
           getRowId={(params) => params.data.id}
         />

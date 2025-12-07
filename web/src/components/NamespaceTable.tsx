@@ -67,23 +67,6 @@ export function NamespaceTable() {
       minWidth: 100,
     },
     {
-      headerName: 'Stats',
-      cellRenderer: (params: ICellRendererParams<Namespace>) => {
-        const stats = params.data?.stats;
-        if (!stats) return '-';
-        return (
-          <div className="flex gap-2 text-xs">
-            <span className="text-blue-600">{stats.queued} Q</span>
-            <span className="text-yellow-600">{stats.processing} P</span>
-            <span className="text-green-600">{stats.completed} C</span>
-            <span className="text-red-600">{stats.failed} F</span>
-          </div>
-        );
-      },
-      flex: 2,
-      minWidth: 180,
-    },
-    {
       field: 'created_at',
       headerName: 'Created At',
       valueFormatter: (params) =>

@@ -24,7 +24,7 @@ func DefaultConfig() Config {
 	return Config{
 		MaxWorkers:        10,
 		RequestTimeout:    300 * time.Second,
-		RequestsPerSecond: 10,
+		RequestsPerSecond: 1000,
 	}
 }
 
