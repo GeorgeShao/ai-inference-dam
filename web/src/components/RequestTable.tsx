@@ -75,7 +75,18 @@ export function RequestTable({ namespace }: RequestTableProps) {
       cellRenderer: (params: ICellRendererParams<Request>) => {
         if (!params.value) return <span className="text-muted-foreground">-</span>;
         const json = JSON.stringify(params.value, null, 2);
-        const truncated = json.length > 60 ? json.slice(0, 60) + '...' : json;
+        // Extract user message content from request
+        let preview = json;
+        try {
+          const messages = params.value.messages;
+          if (Array.isArray(messages)) {
+            const userMsg = messages.find((m: { role?: string }) => m.role === 'user');
+            if (userMsg?.content) {
+              preview = String(userMsg.content);
+            }
+          }
+        } catch { /* fallback to json */ }
+        const truncated = preview.length > 80 ? preview.slice(0, 80) + '...' : preview;
         return (
           <div className="flex items-center gap-1 w-full">
             <button
@@ -98,7 +109,15 @@ export function RequestTable({ namespace }: RequestTableProps) {
       cellRenderer: (params: ICellRendererParams<Request>) => {
         if (!params.value) return <span className="text-muted-foreground">-</span>;
         const json = JSON.stringify(params.value, null, 2);
-        const truncated = json.length > 60 ? json.slice(0, 60) + '...' : json;
+        // Extract assistant message content from response
+        let preview = json;
+        try {
+          const choices = params.value.choices;
+          if (Array.isArray(choices) && choices[0]?.message?.content) {
+            preview = String(choices[0].message.content);
+          }
+        } catch { /* fallback to json */ }
+        const truncated = preview.length > 80 ? preview.slice(0, 80) + '...' : preview;
         return (
           <div className="flex items-center gap-1 w-full">
             <button
