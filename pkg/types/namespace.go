@@ -36,13 +36,5 @@ type UpdateNamespaceRequest struct {
 }
 
 type DeleteNamespaceResponse struct {
-	Message         string `json:"message"`
-	DeletedRequests int    `json:"deleted_requests"`
-}
-
-type DeleteNamespaceConflictResponse struct {
-	Error      string `json:"error"`
-	Queued     int    `json:"queued"`
-	Processing int    `json:"processing"`
-	Completed  int    `json:"completed"`
+	Message string `json:"message"`
 }

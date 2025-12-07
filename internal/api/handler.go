@@ -34,7 +34,6 @@ func (h *Handler) CreateNamespace(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(types.ErrorResponse{Error: "Name is required"})
 	}
 
-	// Check if namespace already exists
 	existing, err := h.store.GetNamespace(c.Context(), req.Name)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(types.ErrorResponse{Error: "Failed to check namespace"})
@@ -145,8 +144,7 @@ func (h *Handler) DeleteNamespace(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusForbidden).JSON(types.ErrorResponse{Error: "Cannot delete default namespace"})
 	}
 
-	deletedRequests, err := h.store.DeleteNamespace(c.Context(), name)
-	if err != nil {
+	if _, err := h.store.DeleteNamespace(c.Context(), name); err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			return c.Status(fiber.StatusNotFound).JSON(types.ErrorResponse{Error: "Namespace not found"})
 		}
@@ -154,8 +152,7 @@ func (h *Handler) DeleteNamespace(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(types.DeleteNamespaceResponse{
-		Message:         "Namespace '" + name + "' deleted successfully",
-		DeletedRequests: deletedRequests,
+		Message: "Namespace '" + name + "' deleted successfully",
 	})
 }
 
@@ -173,7 +170,6 @@ func (h *Handler) ListNamespaces(c *fiber.Ctx) error {
 	return c.JSON(namespaces)
 }
 
-// QueueChatCompletion handles POST /v1/chat/completions
 func (h *Handler) QueueChatCompletion(c *fiber.Ctx) error {
 	namespace := c.Get("X-Namespace", "default")
 
@@ -350,47 +346,4 @@ func (h *Handler) TriggerDispatch(c *fiber.Ctx) error {
 		QueuedCount: len(queuedRequests),
 		Status:      "dispatching",
 	})
-}
-
-func recordToNamespace(record *storage.NamespaceRecord) types.Namespace {
-	ns := types.Namespace{
-		Name:        record.Name,
-		Description: record.Description,
-		CreatedAt:   record.CreatedAt.Format(time.RFC3339),
-		UpdatedAt:   record.UpdatedAt.Format(time.RFC3339),
-	}
-
-	if record.ProviderEndpoint != nil || record.ProviderModel != nil || len(record.ProviderHeaders) > 0 {
-		ns.Provider = &types.ProviderOverride{
-			APIEndpoint: record.ProviderEndpoint,
-			Model:       record.ProviderModel,
-			Headers:     record.ProviderHeaders,
-		}
-	}
-
-	return ns
-}
-
-func recordToRequest(record *storage.RequestRecord) types.Request {
-	req := types.Request{
-		ID:        record.ID,
-		Namespace: record.Namespace,
-		Status:    record.Status,
-		CreatedAt: record.CreatedAt.Format(time.RFC3339),
-	}
-
-	if record.CompletedAt != nil {
-		completedAt := record.CompletedAt.Format(time.RFC3339)
-		req.CompletedAt = &completedAt
-	}
-
-	if record.ResponsePayload != nil {
-		req.Response = record.ResponsePayload
-	}
-
-	if record.Error != nil {
-		req.Error = record.Error
-	}
-
-	return req
 }
