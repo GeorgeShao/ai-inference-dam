@@ -13,6 +13,7 @@ type Request struct {
 	ID           string                 `json:"id"`
 	Namespace    string                 `json:"namespace"`
 	Status       RequestStatus          `json:"status"`
+	Request      map[string]interface{} `json:"request,omitempty"`
 	Response     map[string]interface{} `json:"response,omitempty"`
 	Error        *string                `json:"error,omitempty"`
 	CreatedAt    string                 `json:"created_at"`

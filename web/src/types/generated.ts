@@ -69,6 +69,7 @@ export interface Request {
   id: string;
   namespace: string;
   status: RequestStatus;
+  request?: { [key: string]: any};
   response?: { [key: string]: any};
   error?: string;
   created_at: string;

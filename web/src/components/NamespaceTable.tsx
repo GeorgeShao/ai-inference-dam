@@ -39,7 +39,6 @@ export function NamespaceTable() {
     }
   }, [dispatchMutation]);
 
-  // AG Grid column definitions
   const columnDefs = useMemo<ColDef<Namespace>[]>(() => [
     {
       field: 'name',
@@ -167,14 +166,13 @@ export function NamespaceTable() {
         </Button>
       </div>
 
-      <div className="flex-1" style={{ width: '100%', minHeight: 400 }}>
+      <div style={{ width: '100%' }}>
         <AgGridReact<Namespace>
           rowData={namespaces || []}
           columnDefs={columnDefs}
           defaultColDef={defaultColDef}
           loading={isLoading}
           domLayout="autoHeight"
-          animateRows
           rowSelection="single"
         />
       </div>

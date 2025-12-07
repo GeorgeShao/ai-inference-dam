@@ -54,22 +54,28 @@ export function NamespaceDialog({ open, onOpenChange, namespace }: NamespaceDial
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const provider = {
-      ...(apiEndpoint && { api_endpoint: apiEndpoint }),
-      ...(apiKey && { api_key: apiKey }),
-      ...(model && { model }),
-    };
-
-    const hasProvider = Object.keys(provider).length > 0;
-
     try {
       if (isEditMode) {
+        // In edit mode, always send provider to allow clearing values
+        // Use undefined for empty strings so backend can clear them
         const data: UpdateNamespaceRequest = {
           description,
-          ...(hasProvider && { provider }),
+          provider: {
+            api_endpoint: apiEndpoint || undefined,
+            api_key: apiKey || undefined,
+            model: model || undefined,
+          },
         };
         await updateMutation.mutateAsync({ name: namespace.name, data });
       } else {
+        // In create mode, only include provider if at least one field is set
+        const provider = {
+          ...(apiEndpoint && { api_endpoint: apiEndpoint }),
+          ...(apiKey && { api_key: apiKey }),
+          ...(model && { model }),
+        };
+        const hasProvider = Object.keys(provider).length > 0;
+
         const data: CreateNamespaceRequest = {
           name,
           description,
