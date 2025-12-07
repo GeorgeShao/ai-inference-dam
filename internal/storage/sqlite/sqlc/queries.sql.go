@@ -173,7 +173,7 @@ func (q *Queries) GetNamespaceStats(ctx context.Context, namespace string) (GetN
 }
 
 const getQueuedRequestsByNamespace = `-- name: GetQueuedRequestsByNamespace :many
-SELECT id, namespace, status, request_payload, passthrough_headers, header_endpoint, header_api_key, response_payload, error, created_at, completed_at
+SELECT id, namespace, status, request_payload, passthrough_headers, header_endpoint, header_api_key, response_payload, error, created_at, dispatched_at, completed_at
 FROM requests
 WHERE namespace = ? AND status = 'queued'
 ORDER BY created_at ASC
@@ -199,6 +199,7 @@ func (q *Queries) GetQueuedRequestsByNamespace(ctx context.Context, namespace st
 			&i.ResponsePayload,
 			&i.Error,
 			&i.CreatedAt,
+			&i.DispatchedAt,
 			&i.CompletedAt,
 		); err != nil {
 			return nil, err
@@ -215,7 +216,7 @@ func (q *Queries) GetQueuedRequestsByNamespace(ctx context.Context, namespace st
 }
 
 const getRequest = `-- name: GetRequest :one
-SELECT id, namespace, status, request_payload, passthrough_headers, header_endpoint, header_api_key, response_payload, error, created_at, completed_at
+SELECT id, namespace, status, request_payload, passthrough_headers, header_endpoint, header_api_key, response_payload, error, created_at, dispatched_at, completed_at
 FROM requests
 WHERE id = ?
 `
@@ -234,6 +235,7 @@ func (q *Queries) GetRequest(ctx context.Context, id string) (Request, error) {
 		&i.ResponsePayload,
 		&i.Error,
 		&i.CreatedAt,
+		&i.DispatchedAt,
 		&i.CompletedAt,
 	)
 	return i, err
@@ -278,7 +280,7 @@ func (q *Queries) ListNamespaces(ctx context.Context) ([]Namespace, error) {
 }
 
 const listRequestsByNamespace = `-- name: ListRequestsByNamespace :many
-SELECT id, namespace, status, request_payload, passthrough_headers, header_endpoint, header_api_key, response_payload, error, created_at, completed_at
+SELECT id, namespace, status, request_payload, passthrough_headers, header_endpoint, header_api_key, response_payload, error, created_at, dispatched_at, completed_at
 FROM requests
 WHERE namespace = ?
 ORDER BY created_at DESC
@@ -310,6 +312,7 @@ func (q *Queries) ListRequestsByNamespace(ctx context.Context, arg ListRequestsB
 			&i.ResponsePayload,
 			&i.Error,
 			&i.CreatedAt,
+			&i.DispatchedAt,
 			&i.CompletedAt,
 		); err != nil {
 			return nil, err
@@ -326,7 +329,7 @@ func (q *Queries) ListRequestsByNamespace(ctx context.Context, arg ListRequestsB
 }
 
 const listRequestsByNamespaceAndStatus = `-- name: ListRequestsByNamespaceAndStatus :many
-SELECT id, namespace, status, request_payload, passthrough_headers, header_endpoint, header_api_key, response_payload, error, created_at, completed_at
+SELECT id, namespace, status, request_payload, passthrough_headers, header_endpoint, header_api_key, response_payload, error, created_at, dispatched_at, completed_at
 FROM requests
 WHERE namespace = ? AND status = ?
 ORDER BY created_at DESC
@@ -359,6 +362,7 @@ func (q *Queries) ListRequestsByNamespaceAndStatus(ctx context.Context, arg List
 			&i.ResponsePayload,
 			&i.Error,
 			&i.CreatedAt,
+			&i.DispatchedAt,
 			&i.CompletedAt,
 		); err != nil {
 			return nil, err
@@ -375,7 +379,7 @@ func (q *Queries) ListRequestsByNamespaceAndStatus(ctx context.Context, arg List
 }
 
 const listRequestsByNamespaceAndStatusWithCursor = `-- name: ListRequestsByNamespaceAndStatusWithCursor :many
-SELECT id, namespace, status, request_payload, passthrough_headers, header_endpoint, header_api_key, response_payload, error, created_at, completed_at
+SELECT id, namespace, status, request_payload, passthrough_headers, header_endpoint, header_api_key, response_payload, error, created_at, dispatched_at, completed_at
 FROM requests
 WHERE namespace = ? AND status = ? AND created_at < ?
 ORDER BY created_at DESC
@@ -414,6 +418,7 @@ func (q *Queries) ListRequestsByNamespaceAndStatusWithCursor(ctx context.Context
 			&i.ResponsePayload,
 			&i.Error,
 			&i.CreatedAt,
+			&i.DispatchedAt,
 			&i.CompletedAt,
 		); err != nil {
 			return nil, err
@@ -430,7 +435,7 @@ func (q *Queries) ListRequestsByNamespaceAndStatusWithCursor(ctx context.Context
 }
 
 const listRequestsByNamespaceWithCursor = `-- name: ListRequestsByNamespaceWithCursor :many
-SELECT id, namespace, status, request_payload, passthrough_headers, header_endpoint, header_api_key, response_payload, error, created_at, completed_at
+SELECT id, namespace, status, request_payload, passthrough_headers, header_endpoint, header_api_key, response_payload, error, created_at, dispatched_at, completed_at
 FROM requests
 WHERE namespace = ? AND created_at < ?
 ORDER BY created_at DESC
@@ -463,6 +468,7 @@ func (q *Queries) ListRequestsByNamespaceWithCursor(ctx context.Context, arg Lis
 			&i.ResponsePayload,
 			&i.Error,
 			&i.CreatedAt,
+			&i.DispatchedAt,
 			&i.CompletedAt,
 		); err != nil {
 			return nil, err
@@ -538,15 +544,16 @@ func (q *Queries) UpdateRequestResponse(ctx context.Context, arg UpdateRequestRe
 }
 
 const updateRequestStatus = `-- name: UpdateRequestStatus :exec
-UPDATE requests SET status = ? WHERE id = ?
+UPDATE requests SET status = ?, dispatched_at = ? WHERE id = ?
 `
 
 type UpdateRequestStatusParams struct {
-	Status string `json:"status"`
-	ID     string `json:"id"`
+	Status       string        `json:"status"`
+	DispatchedAt sql.NullInt64 `json:"dispatched_at"`
+	ID           string        `json:"id"`
 }
 
 func (q *Queries) UpdateRequestStatus(ctx context.Context, arg UpdateRequestStatusParams) error {
-	_, err := q.db.ExecContext(ctx, updateRequestStatus, arg.Status, arg.ID)
+	_, err := q.db.ExecContext(ctx, updateRequestStatus, arg.Status, arg.DispatchedAt, arg.ID)
 	return err
 }

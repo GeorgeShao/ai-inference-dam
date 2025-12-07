@@ -10,13 +10,14 @@ const (
 )
 
 type Request struct {
-	ID          string                 `json:"id"`
-	Namespace   string                 `json:"namespace"`
-	Status      RequestStatus          `json:"status"`
-	Response    map[string]interface{} `json:"response,omitempty"`
-	Error       *string                `json:"error,omitempty"`
-	CreatedAt   string                 `json:"created_at"`
-	CompletedAt *string                `json:"completed_at,omitempty"`
+	ID           string                 `json:"id"`
+	Namespace    string                 `json:"namespace"`
+	Status       RequestStatus          `json:"status"`
+	Response     map[string]interface{} `json:"response,omitempty"`
+	Error        *string                `json:"error,omitempty"`
+	CreatedAt    string                 `json:"created_at"`
+	DispatchedAt *string                `json:"dispatched_at,omitempty"`
+	CompletedAt  *string                `json:"completed_at,omitempty"`
 }
 
 type QueuedRequestResponse struct {

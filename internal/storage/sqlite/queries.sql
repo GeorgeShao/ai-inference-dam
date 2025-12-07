@@ -25,7 +25,7 @@ INSERT INTO requests (id, namespace, status, request_payload, passthrough_header
 VALUES (?, ?, ?, ?, ?, ?, ?, ?);
 
 -- name: GetRequest :one
-SELECT id, namespace, status, request_payload, passthrough_headers, header_endpoint, header_api_key, response_payload, error, created_at, completed_at
+SELECT id, namespace, status, request_payload, passthrough_headers, header_endpoint, header_api_key, response_payload, error, created_at, dispatched_at, completed_at
 FROM requests
 WHERE id = ?;
 
@@ -33,7 +33,7 @@ WHERE id = ?;
 DELETE FROM requests WHERE namespace = ?;
 
 -- name: UpdateRequestStatus :exec
-UPDATE requests SET status = ? WHERE id = ?;
+UPDATE requests SET status = ?, dispatched_at = ? WHERE id = ?;
 
 -- name: UpdateRequestResponse :exec
 UPDATE requests SET status = 'completed', response_payload = ?, completed_at = ? WHERE id = ?;
@@ -42,7 +42,7 @@ UPDATE requests SET status = 'completed', response_payload = ?, completed_at = ?
 UPDATE requests SET status = 'failed', error = ?, completed_at = ? WHERE id = ?;
 
 -- name: GetQueuedRequestsByNamespace :many
-SELECT id, namespace, status, request_payload, passthrough_headers, header_endpoint, header_api_key, response_payload, error, created_at, completed_at
+SELECT id, namespace, status, request_payload, passthrough_headers, header_endpoint, header_api_key, response_payload, error, created_at, dispatched_at, completed_at
 FROM requests
 WHERE namespace = ? AND status = 'queued'
 ORDER BY created_at ASC;
@@ -64,28 +64,28 @@ FROM requests
 WHERE namespace = ?;
 
 -- name: ListRequestsByNamespace :many
-SELECT id, namespace, status, request_payload, passthrough_headers, header_endpoint, header_api_key, response_payload, error, created_at, completed_at
+SELECT id, namespace, status, request_payload, passthrough_headers, header_endpoint, header_api_key, response_payload, error, created_at, dispatched_at, completed_at
 FROM requests
 WHERE namespace = ?
 ORDER BY created_at DESC
 LIMIT ?;
 
 -- name: ListRequestsByNamespaceWithCursor :many
-SELECT id, namespace, status, request_payload, passthrough_headers, header_endpoint, header_api_key, response_payload, error, created_at, completed_at
+SELECT id, namespace, status, request_payload, passthrough_headers, header_endpoint, header_api_key, response_payload, error, created_at, dispatched_at, completed_at
 FROM requests
 WHERE namespace = ? AND created_at < ?
 ORDER BY created_at DESC
 LIMIT ?;
 
 -- name: ListRequestsByNamespaceAndStatus :many
-SELECT id, namespace, status, request_payload, passthrough_headers, header_endpoint, header_api_key, response_payload, error, created_at, completed_at
+SELECT id, namespace, status, request_payload, passthrough_headers, header_endpoint, header_api_key, response_payload, error, created_at, dispatched_at, completed_at
 FROM requests
 WHERE namespace = ? AND status = ?
 ORDER BY created_at DESC
 LIMIT ?;
 
 -- name: ListRequestsByNamespaceAndStatusWithCursor :many
-SELECT id, namespace, status, request_payload, passthrough_headers, header_endpoint, header_api_key, response_payload, error, created_at, completed_at
+SELECT id, namespace, status, request_payload, passthrough_headers, header_endpoint, header_api_key, response_payload, error, created_at, dispatched_at, completed_at
 FROM requests
 WHERE namespace = ? AND status = ? AND created_at < ?
 ORDER BY created_at DESC

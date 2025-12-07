@@ -41,6 +41,8 @@ func setupTestApp(t *testing.T) (*fiber.App, func()) {
 	SetupRoutes(app, store, d)
 
 	cleanup := func() {
+		// Wait for any in-flight dispatch goroutines to complete before closing the store
+		d.Wait()
 		if closeErr := store.Close(); closeErr != nil {
 			t.Logf("Failed to close store: %v", closeErr)
 		}

@@ -30,5 +30,6 @@ type Request struct {
 	ResponsePayload    sql.NullString `json:"response_payload"`
 	Error              sql.NullString `json:"error"`
 	CreatedAt          int64          `json:"created_at"`
+	DispatchedAt       sql.NullInt64  `json:"dispatched_at"`
 	CompletedAt        sql.NullInt64  `json:"completed_at"`
 }

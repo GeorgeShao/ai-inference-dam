@@ -28,6 +28,7 @@ type RequestRecord struct {
 	ResponsePayload    map[string]interface{}
 	Error              *string
 	CreatedAt          time.Time
+	DispatchedAt       *time.Time
 	CompletedAt        *time.Time
 }
 

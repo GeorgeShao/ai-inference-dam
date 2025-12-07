@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"time"
 
 	"github.com/georgeshao/ai-inference-dam/pkg/types"
 )
@@ -17,7 +18,7 @@ type Store interface {
 	CreateRequest(ctx context.Context, req *RequestRecord) error
 	GetRequest(ctx context.Context, id string) (*RequestRecord, error)
 	ListRequests(ctx context.Context, filter RequestFilter) ([]*RequestRecord, int, error)
-	UpdateRequestStatus(ctx context.Context, id string, status types.RequestStatus) error
+	UpdateRequestStatus(ctx context.Context, id string, status types.RequestStatus, dispatchedAt time.Time) error
 	UpdateRequestResponse(ctx context.Context, id string, response map[string]interface{}) error
 	UpdateRequestError(ctx context.Context, id string, errMsg string) error
 	GetQueuedRequests(ctx context.Context, namespace string) ([]*RequestRecord, error)

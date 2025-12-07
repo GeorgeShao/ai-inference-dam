@@ -34,6 +34,11 @@ func recordToRequest(record *storage.RequestRecord) types.Request {
 		CreatedAt: record.CreatedAt.Format(time.RFC3339),
 	}
 
+	if record.DispatchedAt != nil {
+		dispatchedAt := record.DispatchedAt.Format(time.RFC3339)
+		req.DispatchedAt = &dispatchedAt
+	}
+
 	if record.CompletedAt != nil {
 		completedAt := record.CompletedAt.Format(time.RFC3339)
 		req.CompletedAt = &completedAt

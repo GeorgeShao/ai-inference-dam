@@ -230,15 +230,21 @@ func TestRequestCRUD(t *testing.T) {
 	}
 
 	// Update status
-	err = store.UpdateRequestStatus(ctx, "req_test123", types.StatusProcessing)
+	dispatchedAt := time.Now()
+	err = store.UpdateRequestStatus(ctx, "req_test123", types.StatusProcessing, dispatchedAt)
 	if err != nil {
 		t.Fatalf("UpdateRequestStatus failed: %v", err)
 	}
 
-	// Verify status update
+	// Verify status update and dispatched_at
 	retrieved, _ = store.GetRequest(ctx, "req_test123")
 	if retrieved.Status != types.StatusProcessing {
 		t.Errorf("Status not updated: got %s", retrieved.Status)
+	}
+	if retrieved.DispatchedAt == nil {
+		t.Error("DispatchedAt should be set")
+	} else if retrieved.DispatchedAt.Unix() != dispatchedAt.Unix() {
+		t.Errorf("DispatchedAt mismatch: got %v, want %v", retrieved.DispatchedAt.Unix(), dispatchedAt.Unix())
 	}
 
 	// Update with response

@@ -276,10 +276,11 @@ func (s *SQLiteStore) ListRequests(ctx context.Context, filter storage.RequestFi
 	return records, int(total), nil
 }
 
-func (s *SQLiteStore) UpdateRequestStatus(ctx context.Context, id string, status types.RequestStatus) error {
+func (s *SQLiteStore) UpdateRequestStatus(ctx context.Context, id string, status types.RequestStatus, dispatchedAt time.Time) error {
 	return s.queries.UpdateRequestStatus(ctx, sqlc.UpdateRequestStatusParams{
-		ID:     id,
-		Status: string(status),
+		ID:           id,
+		Status:       string(status),
+		DispatchedAt: sql.NullInt64{Int64: dispatchedAt.Unix(), Valid: true},
 	})
 }
 
@@ -372,6 +373,11 @@ func sqlcRequestToRecord(req *sqlc.Request) (*storage.RequestRecord, error) {
 		HeaderAPIKey:   fromNullString(req.HeaderApiKey),
 		Error:          fromNullString(req.Error),
 		CreatedAt:      time.Unix(req.CreatedAt, 0),
+	}
+
+	if req.DispatchedAt.Valid {
+		t := time.Unix(req.DispatchedAt.Int64, 0)
+		record.DispatchedAt = &t
 	}
 
 	if req.CompletedAt.Valid {

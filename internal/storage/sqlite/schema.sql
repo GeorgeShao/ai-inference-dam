@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS requests (
     response_payload TEXT,
     error TEXT,
     created_at INTEGER NOT NULL,
+    dispatched_at INTEGER,
     completed_at INTEGER,
     FOREIGN KEY (namespace) REFERENCES namespaces(name)
 );

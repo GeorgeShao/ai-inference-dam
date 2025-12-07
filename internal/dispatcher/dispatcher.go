@@ -33,6 +33,7 @@ type Dispatcher struct {
 	client           *Client
 	config           Config
 	mu               sync.Mutex
+	wg               sync.WaitGroup
 	activeDispatches map[string]bool
 	rateLimiters     map[string]*rate.Limiter
 }
@@ -48,6 +49,9 @@ func New(store storage.Store, config Config) *Dispatcher {
 }
 
 func (d *Dispatcher) Dispatch(namespace string, dispatchID string) {
+	d.wg.Add(1)
+	defer d.wg.Done()
+
 	ctx := context.Background()
 
 	d.mu.Lock()
@@ -136,7 +140,7 @@ func (d *Dispatcher) processRequest(ctx context.Context, ns *storage.NamespaceRe
 		return
 	}
 
-	if err := d.store.UpdateRequestStatus(ctx, req.ID, types.StatusProcessing); err != nil {
+	if err := d.store.UpdateRequestStatus(ctx, req.ID, types.StatusProcessing, time.Now()); err != nil {
 		log.Printf("[%s] Failed to update request status: %v", dispatchID, err)
 		return
 	}
@@ -179,4 +183,10 @@ func (d *Dispatcher) getRateLimiter(namespace string) *rate.Limiter {
 	limiter := rate.NewLimiter(rate.Limit(d.config.RequestsPerSecond), 1)
 	d.rateLimiters[namespace] = limiter
 	return limiter
+}
+
+// Wait blocks until all active dispatch goroutines have completed.
+// This is useful for graceful shutdown and testing.
+func (d *Dispatcher) Wait() {
+	d.wg.Wait()
 }
