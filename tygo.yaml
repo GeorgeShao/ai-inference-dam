@@ -1,0 +1,8 @@
+packages:
+  - path: "github.com/georgeshao/ai-inference-dam/pkg/types"
+    output_path: "web/src/types/generated.ts"
+    type_mappings:
+      time.Time: "string"
+    # Exclude API key fields from generated types for security
+    excludes:
+      - "APIKey"
