@@ -7,6 +7,8 @@ TOTAL=10000
 
 echo "Queuing $TOTAL requests to $ENDPOINT..."
 
+START_TIME=$(date +%s.%N)
+
 for i in $(seq 1 $TOTAL); do
   curl -s -X POST "$ENDPOINT" \
     -H "Content-Type: application/json" \
@@ -21,4 +23,12 @@ for i in $(seq 1 $TOTAL); do
   fi
 done
 
-echo "Done! Queued $TOTAL requests."
+END_TIME=$(date +%s.%N)
+RUNTIME=$(echo "$END_TIME - $START_TIME" | bc)
+RPS=$(echo "scale=2; $TOTAL / $RUNTIME" | bc)
+
+echo ""
+echo "=== Benchmark Stats ==="
+echo "Total requests: $TOTAL"
+echo "Runtime: ${RUNTIME}s"
+echo "Requests/sec: $RPS"
