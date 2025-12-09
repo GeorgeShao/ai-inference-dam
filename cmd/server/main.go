@@ -16,12 +16,15 @@ import (
 	"github.com/georgeshao/ai-inference-dam/internal/api"
 	"github.com/georgeshao/ai-inference-dam/internal/dispatcher"
 	"github.com/georgeshao/ai-inference-dam/internal/storage"
+	"github.com/georgeshao/ai-inference-dam/internal/storage/pebbledb"
 	"github.com/georgeshao/ai-inference-dam/internal/storage/sqlite"
 )
 
 const (
-	DefaultPort        = ":8080"
-	DefaultStoragePath = "./data/inference_dam.db"
+	DefaultPort = ":8080"
+	//DefaultStorageType = "sqlite"
+	DefaultStorageType = "pebbledb"
+	DefaultStoragePath = "./data/inference_dam"
 )
 
 func main() {
@@ -29,14 +32,31 @@ func main() {
 	if port[0] != ':' {
 		port = ":" + port
 	}
+
+	storageType := getEnv("STORAGE_TYPE", DefaultStorageType)
 	storagePath := getEnv("STORAGE_PATH", DefaultStoragePath)
 
-	// Initialize storage
-	store, err := sqlite.New(storagePath)
+	var store storage.Store
+	var err error
+
+	switch storageType {
+	case "sqlite":
+		if !hasExtension(storagePath, ".db") {
+			storagePath = storagePath + ".db"
+		}
+		store, err = sqlite.New(storagePath)
+	case "pebbledb":
+		store, err = pebbledb.New(storagePath, true)
+	default:
+		log.Fatalf("Unknown storage type: %s (supported: sqlite, pebbledb)", storageType)
+	}
+
 	if err != nil {
-		log.Fatalf("Failed to initialize storage: %v", err)
+		log.Fatalf("Failed to initialize %s storage: %v", storageType, err)
 	}
 	defer store.Close()
+
+	log.Printf("Using %s storage at %s", storageType, storagePath)
 
 	if err := ensureDefaultNamespace(store); err != nil {
 		log.Fatalf("Failed to create default namespace: %v", err)
@@ -91,6 +111,10 @@ func getEnv(key, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+func hasExtension(path, ext string) bool {
+	return len(path) > len(ext) && path[len(path)-len(ext):] == ext
 }
 
 func ensureDefaultNamespace(store storage.Store) error {
